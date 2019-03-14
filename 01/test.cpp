@@ -87,6 +87,36 @@ public:
             cout << endl;
         }
     }
+    void flipBytes(uint16_t width, uint8_t channels) {
+        for (auto &row : pixels) {
+            int j = 0;
+            vector<uint16_t> tmp;
+            vector<uint16_t> tmp2;
+            for (auto &pixel : row) {
+                for (int i = 0; i < channels; ++i) {
+                    tmp.push_back(pixel.channels[i]);
+                    ++j;
+                    if ((j % 8 == 0 && j != 0) || j >= width * channels) {
+                        reverse(tmp.begin(), tmp.end());
+                        for (auto &x : tmp) {
+                            tmp2.push_back(x);
+                        }
+                        tmp.clear();
+                    }
+                }
+            }
+            row.clear();
+            int k = 0;
+            while (k < width * channels) {
+                Pixel p;
+                for (int i = 0; i < channels; ++i) {
+                    p.channels[i] = tmp2[k];
+                    ++k;
+                }
+                row.push_back(p);
+            }
+        }
+    }
 };
 
 
@@ -107,7 +137,6 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
     uint8_t format_bits[8];
     // for 1 bit per channel
     uint8_t binary[8];
-    uint8_t binary2[8];
     uint8_t new_binary[8];
     uint16_t zero_padding = 0;
 
@@ -143,13 +172,13 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
         return false;
 
     Img src_img = Img();
-
-    cout << endl;
-    cout << "width: " << width << endl;
-    cout << "height: " << height << endl;
-    cout << "channels: " << (int)channels << endl;
-    cout << "bpc: " << (int)bits_per_channel << endl;
-    int calls = 0;
+//
+//    cout << endl;
+//    cout << "width: " << width << endl;
+//    cout << "height: " << height << endl;
+//    cout << "channels: " << (int)channels << endl;
+//    cout << "bpc: " << (int)bits_per_channel << endl;
+//    int calls = 0;
     // read data and put them in Img class
     if (bits_per_channel == 8) {
         for (int i = 0; i < height; ++i) {
@@ -190,96 +219,97 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
             src_img.pixels.push_back(pixels);
         }
     } else if (bits_per_channel == 1) {
-        if (!little_endian) {
-            for (int i = 0; i < height; ++i) {
-                vector <Pixel> pixels;
-                int j = 0;
-                int tmp_zp = 0;
-                while (j < width * channels) {
-                    if (j == 0) {
+        for (int i = 0; i < height; ++i) {
+            vector <Pixel> pixels;
+            int j = 0;
+            int tmp_zp = 0;
+            while (j < width * channels) {
+                if (j == 0) {
+                    input_file.get(c);
+                    //calls++;
+                    if (input_file.eof()) return false;
+                    to_binary((uint8_t)(unsigned char) c, binary);
+                }
+                Pixel pixel = Pixel();
+                for (int k = 0; k < channels; ++k) {
+                    if (j % 8 == 0 && j != 0) {
+                        if (j + 8 > width * channels) {
+                            zero_padding = (j + 8) - width * channels;
+                            tmp_zp = zero_padding;
+                            //cout << j << ":" << zero_padding << endl;
+                        }
                         input_file.get(c);
                         //calls++;
                         if (input_file.eof()) return false;
-                        to_binary((uint8_t)(unsigned char) c, binary);
+                        to_binary((uint16_t)(unsigned char) c, binary);
                     }
-                    Pixel pixel = Pixel();
-                    for (int k = 0; k < channels; ++k) {
-                        if (j % 8 == 0 && j != 0) {
-                            if (j + 8 > width * channels) {
-                                zero_padding = (j + 8) - width * channels;
-                                tmp_zp = zero_padding;
-                                //cout << j << ":" << zero_padding << endl;
-                            }
-                            input_file.get(c);
-                            //calls++;
-                            if (input_file.eof()) return false;
-                            to_binary((uint16_t)(unsigned char) c, binary);
-                        }
-                        //cout << j << "-" << tmp_zp << endl;
-                        pixel.channels[k] = binary[(j % 8) + tmp_zp];
-                        ++j;
-                    }
-                    pixels.push_back(pixel);
+                    //cout << j << "-" << tmp_zp << endl;
+                    pixel.channels[k] = binary[(j % 8) + tmp_zp];
+                    ++j;
                 }
-                //cout << calls << endl;
-                src_img.pixels.push_back(pixels);
+                pixels.push_back(pixel);
             }
-        } else {
-            for (int i = 0; i < height; ++i) {
-                vector <Pixel> pixels;
-                int j = 0;
-                int tmp_zp = 0;
-                while (j < width * channels) {
-                    if (j == 0) {
-                        input_file.get(c);
-                        if (input_file.eof()) return false;
-                        to_binary((uint8_t)(unsigned char) d, binary2);
-                    }
-                    Pixel pixel = Pixel();
-                    for (int k = 0; k < channels; ++k) {
-                        if (j % 8 == 0 && j != 0) {
-                            if (j + 8 > width * channels) {
-                                zero_padding = (j + 8) - width * channels;
-                                tmp_zp = zero_padding;
-                                //cout << j << ":" << zero_padding << endl;
-                            }
-                            input_file.get(c);
-                            //calls++;
-                            if (input_file.eof()) return false;
-                            to_binary((uint16_t)(unsigned char) c, binary);
-                        }
-                        //cout << j << "-" << tmp_zp << endl;
-                        pixel.channels[k] = binary[(j % 8) + tmp_zp];
-                        ++j;
-                    }
-                    pixels.push_back(pixel);
-                }
-                //cout << calls << endl;
-                src_img.pixels.push_back(pixels);
-            }
+            //cout << calls << endl;
+            src_img.pixels.push_back(pixels);
         }
     }
     input_file.get(c);
     if (!input_file.eof()) return false;
-
-    src_img.print();
+//    src_img.print();
     // horizontal and vertical flip
     if (flipHorizontal) {
-        for (auto &row : src_img.pixels) {
-            reverse(row.begin(), row.end());
+        if (little_endian && bits_per_channel == 1) {
+            src_img.flipBytes(width, channels);
+            for (auto &row : src_img.pixels) {
+                reverse(row.begin(), row.end());
+            }
+            src_img.flipBytes(width, channels);
+        }
+        else {
+            for (auto &row : src_img.pixels) {
+                reverse(row.begin(), row.end());
+            }
         }
     }
     if (flipVertical) {
         reverse(src_img.pixels.begin(), src_img.pixels.end());
     }
-    cout << endl;
-    src_img.print();
 
     // insert header into output file
     for (auto i : header) {
         output_file.put((char) i);
         if (output_file.bad()) return false;
     }
+//    cout << endl;
+//    src_img.print();
+//    if (little_endian && flipHorizontal && bits_per_channel == 1) {
+//        for (auto &row : src_img.pixels) {
+//            vector<uint16_t> tmp_bits;
+//            vector<uint16_t> tmp_bits2;
+//            // put all bits on row into a tmp vector
+//            for (auto &pixel : row) {
+//                for (int k = 0; k < channels; ++k) {
+//                    tmp_bits.push_back(pixel.channels[k]);
+//                }
+//            }
+//            // extract last few bits by zero padding and add them to start
+//            for (int i = tmp_bits.size() - zero_padding; i < tmp_bits.size(); ++i) {
+//                tmp_bits2.push_back(tmp_bits[i]);
+//            }
+//            // add rest of the bits
+//            for (int i = 0; i < tmp_bits.size() - zero_padding; ++i) {
+//                tmp_bits2.push_back(tmp_bits[i]);
+//            }
+//            // put it back into Img
+//            int j = 0;
+//            for (auto &pixel : row) {
+//                for (int k = 0; k < channels; ++k) {
+//                    pixel.channels[k] = tmp_bits2[j];
+//                    ++j;
+//                }
+//            }
+//        }
+//    }
 
     // insert rest of the data into output file
     for (int i = 0; i < height; ++i) {
@@ -333,10 +363,10 @@ void showFile(const char *fileName) {
     int offset = 0;
     ifstream f(fileName, ios::binary | ios::in);
     while (f.get(c)) {
-        cout << setw(3) << (int) (unsigned char) c;
+        cout << setw(4) << (int) (unsigned char) c;
         if (offset == 7)
             cout << endl;
-        if (offset % 2 == 1 && offset > 8)
+        if (offset % 4 == 3 && offset > 8)
             cout << endl;
         offset++;
     }
@@ -382,6 +412,7 @@ int main() {
 //           && identicalFiles("output_08.img", "ref_08.img"));
 //
 //    assert(!flipImage("input_09.img", "output_09.img", true, false));
+//    identicalFiles("input_09.img", "ref_09.img");
 //
 //     extra inputs (optional & bonus tests)
 //    assert(flipImage("extra_input_00.img", "extra_out_00.img", true, false)
@@ -403,15 +434,18 @@ int main() {
     identicalFiles("extra_input_08.img", "extra_ref_08.img");
     assert(flipImage("extra_input_08.img", "extra_out_08.img", true, false)
            && identicalFiles("extra_out_08.img", "extra_ref_08.img"));
-//    assert(flipImage("extra_input_09.img", "extra_out_09.img", false, true)
-//           && identicalFiles("extra_out_09.img", "extra_ref_09.img"));
-//    identicalFiles("extra_input_10.img", "extra_ref_10.img");
-//    assert(flipImage("extra_input_10.img", "extra_out_10.img", true, false)
-//           && identicalFiles("extra_out_10.img", "extra_ref_10.img"));
-//
-//    identicalFiles("extra_input_11.img", "extra_ref_11.img");
-//    assert(flipImage("extra_input_11.img", "extra_out_11.img", false, true)
-//           && identicalFiles("extra_out_11.img", "extra_ref_11.img"));
+    assert(flipImage("extra_input_09.img", "extra_out_09.img", false, true)
+           && identicalFiles("extra_out_09.img", "extra_ref_09.img"));
+    identicalFiles("extra_input_10.img", "extra_ref_10.img");
+    assert(flipImage("extra_input_10.img", "extra_out_10.img", true, false)
+           && identicalFiles("extra_out_10.img", "extra_ref_10.img"));
+    identicalFiles("extra_in12.bin", "extra_ref13.bin");
+    assert(flipImage("extra_in12.bin", "extra_out_12.img", true, true)
+           && identicalFiles("extra_out_12.img", "extra_ref13.bin"));
+
+    identicalFiles("extra_input_11.img", "extra_ref_11.img");
+    assert(flipImage("extra_input_11.img", "extra_out_11.img", false, true)
+           && identicalFiles("extra_out_11.img", "extra_ref_11.img"));
     return 0;
 }
 
