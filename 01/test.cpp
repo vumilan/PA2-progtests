@@ -142,8 +142,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
 
     // first get header
     while (read_index < 8 && input_file.get(c)) {
-        header[read_index] = (uint8_t)(unsigned char)
-        c;
+        header[read_index] = (uint8_t)(unsigned char) c;
         ++read_index;
     }
     read_index = 0;
@@ -173,11 +172,11 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
 
     Img src_img = Img();
 //
-//    cout << endl;
-//    cout << "width: " << width << endl;
-//    cout << "height: " << height << endl;
-//    cout << "channels: " << (int)channels << endl;
-//    cout << "bpc: " << (int)bits_per_channel << endl;
+    cout << endl;
+    cout << "width: " << width << endl;
+    cout << "height: " << height << endl;
+    cout << "channels: " << (int)channels << endl;
+    cout << "bpc: " << (int)bits_per_channel << endl;
 //    int calls = 0;
     // read data and put them in Img class
     if (bits_per_channel == 8) {
@@ -207,12 +206,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
                     input_file.get(d);
                     if (input_file.eof()) return false;
                     auto second_byte = (uint8_t)(unsigned char)d;
-                    if (little_endian) {
-                        pixel.channels[k] = (uint16_t)(second_byte << 8 | first_byte);
-                    } else {
-                        pixel.channels[k] = (uint16_t)(first_byte << 8 | second_byte);
-                    }
-
+                    pixel.channels[k] = (uint16_t)(second_byte << 8 | first_byte);
                 }
                 pixels.push_back(pixel);
             }
@@ -223,6 +217,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
             vector <Pixel> pixels;
             int j = 0;
             int tmp_zp = 0;
+            zero_padding = (width * channels) % 8;
             while (j < width * channels) {
                 if (j == 0) {
                     input_file.get(c);
@@ -234,9 +229,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
                 for (int k = 0; k < channels; ++k) {
                     if (j % 8 == 0 && j != 0) {
                         if (j + 8 > width * channels) {
-                            zero_padding = (j + 8) - width * channels;
                             tmp_zp = zero_padding;
-                            //cout << j << ":" << zero_padding << endl;
                         }
                         input_file.get(c);
                         //calls++;
@@ -255,7 +248,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
     }
     input_file.get(c);
     if (!input_file.eof()) return false;
-//    src_img.print();
+    src_img.print();
     // horizontal and vertical flip
     if (flipHorizontal) {
         if (little_endian && bits_per_channel == 1) {
@@ -281,35 +274,7 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
         if (output_file.bad()) return false;
     }
 //    cout << endl;
-//    src_img.print();
-//    if (little_endian && flipHorizontal && bits_per_channel == 1) {
-//        for (auto &row : src_img.pixels) {
-//            vector<uint16_t> tmp_bits;
-//            vector<uint16_t> tmp_bits2;
-//            // put all bits on row into a tmp vector
-//            for (auto &pixel : row) {
-//                for (int k = 0; k < channels; ++k) {
-//                    tmp_bits.push_back(pixel.channels[k]);
-//                }
-//            }
-//            // extract last few bits by zero padding and add them to start
-//            for (int i = tmp_bits.size() - zero_padding; i < tmp_bits.size(); ++i) {
-//                tmp_bits2.push_back(tmp_bits[i]);
-//            }
-//            // add rest of the bits
-//            for (int i = 0; i < tmp_bits.size() - zero_padding; ++i) {
-//                tmp_bits2.push_back(tmp_bits[i]);
-//            }
-//            // put it back into Img
-//            int j = 0;
-//            for (auto &pixel : row) {
-//                for (int k = 0; k < channels; ++k) {
-//                    pixel.channels[k] = tmp_bits2[j];
-//                    ++j;
-//                }
-//            }
-//        }
-//    }
+    src_img.print();
 
     // insert rest of the data into output file
     for (int i = 0; i < height; ++i) {
@@ -332,15 +297,9 @@ bool flipImage(const char *srcFileName, const char *dstFileName, bool flipHorizo
                         output_file.put((char) to_number(new_binary));
                     }
                 } else if (bits_per_channel == 16) {
-                    if (little_endian) {
-                        output_file.put((char) src_img.pixels[i][j].channels[k]);
-                        uint8_t byte2 = src_img.pixels[i][j].channels[k] >> 8;
-                        output_file.put((char) byte2);
-                    } else {
-                        uint8_t byte2 = src_img.pixels[i][j].channels[k] >> 8;
-                        output_file.put((char) byte2);
-                        output_file.put((char) src_img.pixels[i][j].channels[k]);
-                    }
+                    output_file.put((char) src_img.pixels[i][j].channels[k]);
+                    uint8_t byte2 = src_img.pixels[i][j].channels[k] >> 8;
+                    output_file.put((char) byte2);
 
                 } else {
                     output_file.put((char) src_img.pixels[i][j].channels[k]);
@@ -366,7 +325,7 @@ void showFile(const char *fileName) {
         cout << setw(4) << (int) (unsigned char) c;
         if (offset == 7)
             cout << endl;
-        if (offset % 4 == 3 && offset > 8)
+        if (offset % 2 == 1 && offset > 8)
             cout << endl;
         offset++;
     }
@@ -383,7 +342,7 @@ bool identicalFiles(const char *fileName1, const char *fileName2) {
 int main() {
 //    flipImage("input_00.img", "output_00.img", true, false);
 //    identicalFiles("input_00.img", "ref_00.img");
-
+//
 //    assert(flipImage("input_00.img", "output_00.img", true, false)
 //           && identicalFiles("output_00.img", "ref_00.img"));
 //
@@ -430,22 +389,22 @@ int main() {
 //    assert(flipImage("extra_input_06.img", "extra_out_06.img", true, false)
 //           && identicalFiles("extra_out_06.img", "extra_ref_06.img"));
 //    assert(flipImage("extra_input_07.img", "extra_out_07.img", false, true)
-//           && identicalFiles("extra_out_07.img", "extra_ref_07.img"));
-    identicalFiles("extra_input_08.img", "extra_ref_08.img");
-    assert(flipImage("extra_input_08.img", "extra_out_08.img", true, false)
-           && identicalFiles("extra_out_08.img", "extra_ref_08.img"));
+//    && identicalFiles("extra_out_07.img", "extra_ref_07.img"));
+//    identicalFiles("extra_input_08.img", "extra_ref_08.img");
+//    assert(flipImage("extra_input_08.img", "extra_out_08.img", true, false)
+//           && identicalFiles("extra_out_08.img", "extra_ref_08.img"));
     assert(flipImage("extra_input_09.img", "extra_out_09.img", false, true)
            && identicalFiles("extra_out_09.img", "extra_ref_09.img"));
-    identicalFiles("extra_input_10.img", "extra_ref_10.img");
-    assert(flipImage("extra_input_10.img", "extra_out_10.img", true, false)
-           && identicalFiles("extra_out_10.img", "extra_ref_10.img"));
-    identicalFiles("extra_in12.bin", "extra_ref13.bin");
-    assert(flipImage("extra_in12.bin", "extra_out_12.img", true, true)
-           && identicalFiles("extra_out_12.img", "extra_ref13.bin"));
-
-    identicalFiles("extra_input_11.img", "extra_ref_11.img");
-    assert(flipImage("extra_input_11.img", "extra_out_11.img", false, true)
-           && identicalFiles("extra_out_11.img", "extra_ref_11.img"));
+//    identicalFiles("extra_input_10.img", "extra_ref_10.img");
+//    assert(flipImage("extra_input_10.img", "extra_out_10.img", true, false)
+//           && identicalFiles("extra_out_10.img", "extra_ref_10.img"));
+//    identicalFiles("extra_in12.bin", "extra_ref13.bin");
+//    assert(flipImage("extra_in12.bin", "extra_out_12.img", true, true)
+//           && identicalFiles("extra_out_12.img", "extra_ref13.bin"));
+//
+//    identicalFiles("extra_input_11.img", "extra_ref_11.img");
+//    assert(flipImage("extra_input_11.img", "extra_out_11.img", false, true)
+//           && identicalFiles("extra_out_11.img", "extra_ref_11.img"));
     return 0;
 }
 
