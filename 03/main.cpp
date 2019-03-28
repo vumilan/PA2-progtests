@@ -52,7 +52,7 @@ public:
         this->hi = hi;
     }
 
-    CRange &operator+(const CRange &range);
+    CRange operator+(const CRange &range);
 
     long long int getLo() const;
 
@@ -85,10 +85,14 @@ public:
     CRangeList &operator=(const CRangeList &rangeList);
 
     // += range / range list
+    CRangeList &correctAppend(const CRange &range);
     CRangeList &operator+=(const CRange &range);
+    CRangeList &operator+=(const CRangeList &rangeList);
 
-    void append(const CRange &range) const {
-        notEditedRanges.push_back(range);
+    CRangeList &correctDelete(const CRange &range);
+
+    void append(const CRange &range) {
+        correctRanges.push_back(range);
     }
 
     const vector<CRange> &getRanges() const;
@@ -114,8 +118,17 @@ private:
 // copy constructors
 
 CRangeList &CRangeList::operator=(const CRange &range) {
-    correctRanges.clear();
-    correctRanges.push_back(range);
+    if (notEditedRanges.empty()) {
+        correctRanges.clear();
+        correctRanges.push_back(range);
+    }
+    else {
+        correctRanges.clear();
+        for (auto &rangeInVec : notEditedRanges) {
+            correctAppend(rangeInVec);
+        }
+        notEditedRanges.clear();
+    }
     return *this;
 }
 
@@ -129,7 +142,7 @@ CRangeList &CRangeList::operator=(const CRangeList &rangeList) {
 
 // += operator, +operator
 
-CRangeList &CRangeList::operator+=(const CRange &range) {
+CRangeList& CRangeList::correctAppend(const CRange &range) {
     if (correctRanges.empty()) {
         this->append(range);
         return *this;
@@ -160,10 +173,36 @@ CRangeList &CRangeList::operator+=(const CRange &range) {
     return *this;
 }
 
-CRange& CRange::operator+(const CRange &range) {
+CRangeList& CRangeList::correctDelete(const CRange &range) {
+    
+}
+
+CRangeList &CRangeList::operator+=(const CRange &range) {
     if (notEditedRanges.empty()) {
-        
+        correctAppend(range);
     }
+    else {
+        for (auto &rangeInVec : notEditedRanges) {
+            correctAppend(rangeInVec);
+        }
+        notEditedRanges.clear();
+    }
+    return *this;
+}
+
+CRangeList& CRangeList::operator+=(const CRangeList &rangeList) {
+    for (auto &range : rangeList.getRanges()) {
+        this->correctAppend(range);
+    }
+    return *this;
+}
+
+CRange CRange::operator+(const CRange &range) {
+    if (notEditedRanges.empty()) {
+        notEditedRanges.emplace_back(*this);
+    }
+    notEditedRanges.push_back(range);
+    return CRange{0, 0};
 }
 
 // print functions
@@ -214,15 +253,20 @@ int main(void) {
     cout << toString(a) << endl;
     assert (toString(a) == "{<-5..0>,<5..100>}");
     a += CRange(101, 105) + CRange(120, 150) + CRange(160, 180) + CRange(190, 210);
+    cout << toString(a) << endl;
     assert (toString(a) == "{<-5..0>,<5..105>,<120..150>,<160..180>,<190..210>}");
-//    a += CRange(106, 119) + CRange(152, 158);
-//    assert (toString(a) == "{<-5..0>,<5..150>,<152..158>,<160..180>,<190..210>}");
-//    a += CRange(-3, 170);
-//    a += CRange(-30, 1000);
-//    assert (toString(a) == "{<-30..1000>}");
-//    b = CRange(-500, -300) + CRange(2000, 3000) + CRange(700, 1001);
-//    a += b;
-//    assert (toString(a) == "{<-500..-300>,<-30..1001>,<2000..3000>}");
+    a += CRange(106, 119) + CRange(152, 158);
+    assert (toString(a) == "{<-5..0>,<5..150>,<152..158>,<160..180>,<190..210>}");
+    a += CRange(-3, 170);
+    a += CRange(-30, 1000);
+    assert (toString(a) == "{<-30..1000>}");
+    b = CRange(-500, -300) + CRange(2000, 3000) + CRange(700, 1001);
+    cout << toString(b) << endl;
+    cout << toString(a) << endl;
+    a += b;
+    cout << toString(b) << endl;
+    cout << toString(a) << endl;
+    assert (toString(a) == "{<-500..-300>,<-30..1001>,<2000..3000>}");
 //    a -= CRange(-400, -400);
 //    assert (toString(a) == "{<-500..-401>,<-399..-300>,<-30..1001>,<2000..3000>}");
 //    a -= CRange(10, 20) + CRange(900, 2500) + CRange(30, 40) + CRange(10000, 20000);
