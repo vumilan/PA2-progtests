@@ -1,0 +1,3 @@
+/Users/vumilan/CLionProjects/PA2/PA2-progtests/03/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/vumilan/CLionProjects/PA2/PA2-progtests/03/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/vumilan/CLionProjects/PA2/PA2-progtests/03/cmake-build-debug/CMakeFiles/03.dir

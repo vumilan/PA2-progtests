@@ -1,5 +1,4 @@
 #ifndef __PROGTEST__
-
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -8,11 +7,10 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
-#include <algorithm>
-
 using namespace std;
 
-class InvalidIndexException {
+class InvalidIndexException
+{
 };
 
 #endif /* __PROGTEST__ */
@@ -27,6 +25,10 @@ public:
 
     String(const char *);
 
+    void del() {
+        delete[] buffer;
+    }
+
     ~String();
 
     size_t length() const;
@@ -35,11 +37,55 @@ public:
 
     void insert(unsigned int, String &);
 
-    char &operator[](unsigned int);
+    char &operator[](unsigned int) const;
 
     void operator=(const String &);
 
-    void operator+=(const String &);
+    void operator+=(const String &str) {
+        char *newBuffer = new char[size + str.size + 1];
+        newBuffer[size + str.size] = '\0';
+        for (size_t i = 0; i < size; i++) {
+            newBuffer[i] = buffer[i];
+        }
+        for (size_t i = size; i < size + str.size; i++) {
+            newBuffer[i] = str.buffer[i-size];
+        }
+        size += str.size;
+        delete[] buffer;
+        buffer = newBuffer;
+    }
+
+    void Insert ( size_t pos, const String & src ) {
+        char *newBuffer = new char[size + src.size + 1];
+        newBuffer[size + src.size] = '\0';
+        size_t i = 0;
+        for (i = 0; i < pos; i++) {
+            newBuffer[i] = buffer[i];
+        }
+        for (i = pos; i < pos + src.size; i++) {
+            newBuffer[i] = src.buffer[i-pos];
+        }
+        for (i = pos + src.size; i < size + src.size; i++) {
+            newBuffer[i] = buffer[i - src.size];
+        }
+        size += src.size;
+        delete[] buffer;
+        buffer = newBuffer;
+    }
+    void Delete    ( size_t            from,
+                            size_t            len ) {
+        char *newBuffer = new char[size - len + 1];
+        newBuffer[size - len] = '\0';
+        for (size_t i = 0; i < from; i++) {
+            newBuffer[i] = buffer[i];
+        }
+        for (size_t i = from + len; i < size; i++) {
+            newBuffer[i - len] = buffer[i];
+        }
+        size -= len;
+        delete[] buffer;
+        buffer = newBuffer;
+    }
 
     // other methods
     friend bool operator==(const String &, const String &);
@@ -50,8 +96,11 @@ public:
 
     friend ostream &operator<<(ostream &, const String &);
 
-    char *toChar() {
-        return buffer;
+    char *toChar() const {
+        char *out = new char[size + 1];
+        memcpy(out, buffer, size + 1);
+        out[size] = '\0';
+        return out;
     }
 };
 
@@ -62,10 +111,11 @@ String::String() {
 
 String::String(const String &s) {
     size = s.size;
-    buffer = new char[size];
+    buffer = new char[size + 1];
     for (size_t i = 0; i < size; i++) {
         buffer[i] = s.buffer[i];
     }
+    buffer[size] = '\0';
 }
 
 String::String(const char *p) {
@@ -76,13 +126,14 @@ String::String(const char *p) {
         i++;
     }
 
-    buffer = new char[i];
+    buffer = new char[i + 1];
     size_t j = 0;
 
     for (j = 0; *t; t++, j++) {
         buffer[j] = *t;
     }
     size = j;
+    buffer[size] = '\0';
 }
 
 String::~String() {
@@ -97,12 +148,17 @@ size_t String::length() const {
     }
 }
 
-char &String::operator[](unsigned int x) {
+char &String::operator[](unsigned int x) const {
     return buffer[x];
 }
 
 void String::operator=(const String &s) {
-    buffer = s.buffer;
+    if (buffer)
+        delete[] buffer;
+    buffer = new char[s.size + 1];
+    strcpy(buffer, s.buffer);
+    buffer[s.size] = '\0';
+    size = s.size;
 }
 
 ostream &operator<<(ostream &os, const String &s) {
@@ -125,604 +181,83 @@ bool operator==(const String &s, const String &t) {
     return true;
 }
 
-template <class T>
-class  Vector
+class CPatchStr
 {
 public:
-
-    typedef T * iterator;
-    typedef const T * const_iterator;
-    Vector();
-    Vector(unsigned int size);
-    Vector(unsigned int size, const T & initial);
-    Vector(const Vector<T> & v);
-    ~Vector();
-
-    unsigned int capacity() const;
-    unsigned int size() const;
-    bool empty() const;
-    iterator begin();
-    iterator end();
-    const_iterator begin() const;
-    const_iterator end() const;
-    iterator lower_bound(size_t from) const;
-    T & front();
-    T & back();
-    void push_back(const T & value);
-    void insert(iterator it, const T & value);
-    void insert2(iterator it, const T & value);
-    void erase(iterator it);
-    void pop_back();
-
-    void reserve(unsigned int capacity);
-    void resize(unsigned int size);
-
-    T & operator[](unsigned int index);
-    T & operator[](unsigned int index) const;
-    Vector<T> & swap(const Vector<T> &);
-    void clear();
-private:
-    unsigned int my_size;
-    unsigned int my_capacity;
-    T * buffer;
-};
-
-template<class T>
-Vector<T>::Vector() {
-    my_capacity = 0;
-    my_size = 0;
-    buffer = 0;
-}
-
-template<class T>
-Vector<T>::Vector(const Vector<T> & v) {
-    my_size = v.my_size;
-    my_capacity = v.my_capacity;
-    buffer = new T[my_size];
-    for (unsigned int i = 0; i < my_size; i++)
-        buffer[i] = v.buffer[i];
-}
-
-template<class T>
-Vector<T>::Vector(unsigned int size) {
-    my_capacity = size;
-    my_size = size;
-    buffer = new T[size];
-}
-
-template<class T>
-Vector<T>::Vector(unsigned int size, const T & initial) {
-    my_size = size;
-    my_capacity = size;
-    buffer = new T [size];
-    for (unsigned int i = 0; i < size; i++)
-        buffer[i] = initial;
-}
-
-template<class T>
-typename Vector<T>::iterator Vector<T>::lower_bound(size_t from) const {
-//    size_t count = my_size;
-//    size_t step = 0;
-//    iterator it;
-//    iterator out = buffer + size();
-//    while (count>0)
-//    {
-//        step=count/2;
-//        it = buffer + step;
-//        if (it->second + it->first.getLength() < from + 1) {
-//            count-=step+1;
-//        }
-//        else {
-//            count=step;
-//            out = it;
-//        }
-//    }
-//    return out;
-    iterator it = buffer;
-    while (it->second + it->first.getLength() < from + 1 && it != buffer + size()) {
-        it++;
+    CPatchStr ( void ) {
+        buffer = "";
     }
-    return it;
-}
-
-template<class T>
-Vector<T> & Vector<T>::swap (const Vector<T> & v)
-{
-    delete[] buffer;
-    my_size = v.my_size;
-    my_capacity = v.my_capacity;
-    buffer = new T [my_size];
-    for (unsigned int i = 0; i < my_size; i++)
-        buffer[i] = v.buffer[i];
-    return *this;
-}
-
-template<class T>
-typename Vector<T>::iterator Vector<T>::begin()
-{
-    return buffer;
-}
-
-template<class T>
-typename Vector<T>::const_iterator Vector<T>::begin() const
-{
-    return buffer;
-}
-
-template<class T>
-typename Vector<T>::iterator Vector<T>::end()
-{
-    return buffer + size();
-}
-
-template<class T>
-typename Vector<T>::const_iterator Vector<T>::end() const
-{
-    return buffer + size();
-}
-
-template<class T>
-T& Vector<T>::front()
-{
-    return buffer[0];
-}
-
-template<class T>
-T& Vector<T>::back()
-{
-    return buffer[my_size - 1];
-}
-
-template<class T>
-void Vector<T>::push_back(const T & v)
-{
-    if (my_size >= my_capacity)
-        reserve(my_capacity+1000);
-    buffer [my_size++] = v;
-}
-
-template<class T>
-void Vector<T>::insert(iterator it, const T & v) {
-    if (my_size >= my_capacity)
-        reserve(my_capacity+1000);
-    T *newBuffer = new T[my_size];
-    for (unsigned i = 0; i < my_size; i++) {
-        newBuffer[i] = buffer[i];
+    CPatchStr ( const char * src ) {
+        buffer = String(src);
     }
-    unsigned itPos = it - this->begin();
-    buffer[itPos] = v;
-    my_size++;
-    for (unsigned i = itPos; i < my_size-1; i++) {
-        buffer[i+1] = newBuffer[i];
-        buffer[i+1].second += v.first.getLength();
-//        cout << newBuffer[i].second << endl;
-//        cout << *newBuffer[i].first.getStr() << endl;
-//        cout << newBuffer[i].first.getLength() << endl;
-    }
-    delete[] newBuffer;
-}
-
-template<class T>
-void Vector<T>::insert2(iterator it, const T & v) {
-    if (my_size >= my_capacity)
-        reserve(my_capacity+1000);
-    T *newBuffer = new T[my_size];
-    for (unsigned i = 0; i < my_size; i++) {
-        newBuffer[i] = buffer[i];
-    }
-    unsigned itPos = it - this->begin();
-    buffer[itPos] = v;
-    my_size++;
-    for (unsigned i = itPos; i < my_size-1; i++) {
-        buffer[i+1] = newBuffer[i];
-    }
-    delete[] newBuffer;
-}
-
-template<class T>
-void Vector<T>::erase(iterator it) {
-    unsigned itPos = it - this->begin();
-    for (unsigned i = itPos; i < my_size-1; i++) {
-        buffer[i] = buffer[i+1];
-    }
-    my_size--;
-}
-
-template<class T>
-void Vector<T>::pop_back()
-{
-    my_size--;
-}
-
-template<class T>
-void Vector<T>::reserve(unsigned int capacity)
-{
-    if(buffer == 0)
-    {
-        my_size = 0;
-        my_capacity = 0;
-    }
-    T * Newbuffer = new T [capacity];
-
-    unsigned int l_Size = capacity < my_size ? capacity : my_size;
-
-    for (unsigned int i = 0; i < l_Size; i++)
-        Newbuffer[i] = buffer[i];
-    my_capacity = capacity;
-    delete[] buffer;
-    buffer = Newbuffer;
-}
-
-template<class T>
-unsigned int Vector<T>::size()const//
-{
-    return my_size;
-}
-
-template<class T>
-void Vector<T>::resize(unsigned int size)
-{
-    reserve(size);
-    my_size = size;
-}
-
-template<class T>
-T& Vector<T>::operator[](unsigned int index)
-{
-    return buffer[index];
-}
-
-template<class T>
-T& Vector<T>::operator[](unsigned int index) const
-{
-    return buffer[index];
-}
-
-template<class T>
-unsigned int Vector<T>::capacity()const
-{
-    return my_capacity;
-}
-
-template<class T>
-Vector<T>::~Vector()
-{
-    delete[] buffer;
-}
-template <class T>
-void Vector<T>::clear()
-{
-    my_capacity = 0;
-    my_size = 0;
-    buffer = 0;
-}
-
-class CSubPatchStr {
-public:
-    CSubPatchStr() {
-        str = nullptr;
-        length = 0;
-        offset = 0;
-    };
-    CSubPatchStr(size_t offset, size_t length, const shared_ptr<String> &str) {
-        this->str = str;
-        this->length = length;
-        this->offset = offset;
-    };
-
-    const shared_ptr<String> &getStr() const {
-        return str;
-    }
-
-    size_t getOffset() const {
-        return offset;
-    }
-
-    size_t getLength() const {
-        return length;
-    }
-
-    void setStr(const shared_ptr<String> &str) {
-        CSubPatchStr::str = str;
-    }
-
-    void setOffset(size_t offset) {
-        CSubPatchStr::offset = offset;
-    }
-
-    void setLength(size_t length) {
-        CSubPatchStr::length = length;
-    }
-
-private:
-    shared_ptr<String> str;
-    size_t offset;
-    size_t length;
-};
-
-
-
-class CPatchStr {
-    Vector<pair<CSubPatchStr, size_t>> vec;
-    size_t length = 0;
-public:
-
-    CPatchStr(void) = default;
-
-    CPatchStr(const char *str) {
-        String string1 = str;
-        auto ptr = make_shared<String>(string1);
-        vec.push_back(make_pair(CSubPatchStr(0, (*ptr).length(), ptr), length));
-        length += (*ptr).length();
-    };
     // copy constructor
-    CPatchStr(const CPatchStr &src) {
-        vec.clear();
-        length = 0;
-        for (auto const &str : src.vec) {
-            vec.push_back(str);
-        }
-        length = src.length;
+    CPatchStr ( const CPatchStr &src ) {
+        buffer = src.buffer;
     }
-
     // destructor
     // operator =
-    CPatchStr &operator=(const char *str) {
-        vec.clear();
-        length = 0;
-        String string1 = str;
-        auto ptr = make_shared<String>(string1);
-        vec.push_back(make_pair(CSubPatchStr(0, (*ptr).length(), ptr), length));
-        length += (*ptr).length();
-        return *this;
+    void operator= ( const char * src ) {
+        buffer = String(src);
     }
-    CPatchStr &operator=(const CPatchStr &src) {
-        vec.clear();
-        length = src.length;
-        for (auto const &str : src.vec) {
-            vec.push_back(str);
-        }
-        return *this;
+    ~CPatchStr() {
+//        buffer.del();
     }
-    CPatchStr SubStr(size_t from, size_t len) const {
-        if (from + len > length)
+    size_t Length() {
+        return buffer.length();
+    }
+    CPatchStr   SubStr    ( size_t            from,
+    size_t            len ) const {
+        if (from + len > buffer.length())
             throw InvalidIndexException();
-        CPatchStr out;
-        if (len == 0) {
-            out.vec.push_back(make_pair(CSubPatchStr(0,0,make_shared<String>("")),0));
-            return out;
+        if (len == 0)
+            return CPatchStr("");
+        char *out = new char[len + 1];
+        for (size_t i = from; i < from + len; i++) {
+            out[i - from] = buffer.toChar()[i];
         }
-        auto lb = vec.lower_bound(from);
-//        cout << *lb->first.getStr() << endl;
-        size_t newOffset = from - lb->first.getOffset() - lb->second;
-        size_t newLength = lb->first.getLength() - newOffset;
-        size_t newGlobOffset = 0;
-        if (newLength > len) {
-            CSubPatchStr first = CSubPatchStr(newOffset, len, lb->first.getStr());
-            out.vec.push_back(make_pair(first, newGlobOffset));
-            out.length = len;
-            return out;
-        }
-        CSubPatchStr first = CSubPatchStr(newOffset, newLength, lb->first.getStr());
-        out.vec.push_back(make_pair(first, newGlobOffset));
-        newGlobOffset += newLength;
-        if (lb->first.getLength() >= len) {
-            out.length = len;
-            return out;
-        }
-        lb++;
-        while (newGlobOffset + lb->first.getLength() < len) {
-            if (lb->first.getLength() + lb->second < from + len) {
-                out.vec.push_back(make_pair(lb->first, newGlobOffset));
-                newGlobOffset += lb->first.getLength();
-                lb++;
-            }
-            else break;
-        }
-        newLength = from + len - lb->second;
-        CSubPatchStr last = CSubPatchStr(lb->first.getOffset(), newLength, lb->first.getStr());
-        out.vec.push_back(make_pair(last, newGlobOffset));
-        out.length = len;
-        return out;
+        out[len] = '\0';
+        return CPatchStr(out);
     }
-
-    CPatchStr &Append(const CPatchStr &src) {
-        for (auto const &str : src.vec) {
-            vec.push_back(make_pair(str.first, length));
-            length += str.first.getLength();
-        }
+    CPatchStr & Append    ( const CPatchStr & src ) {
+        buffer += src.buffer;
         return *this;
     }
 
-    CPatchStr &Insert(size_t pos, const CPatchStr &ssrc) {
-        CPatchStr src = ssrc;
-        if (pos > length || pos < 0)
+    CPatchStr & Insert    ( size_t            pos,
+                            const CPatchStr & src ) {
+        if (pos > buffer.length() || pos < 0)
             throw InvalidIndexException();
-        auto lb = vec.lower_bound(pos);
-        CSubPatchStr last;
-        size_t nextOffset;
-        if (lb == vec.end())
-            nextOffset = length;
-        else
-            nextOffset = lb->second;
-        if (lb->second != pos && lb->first.getStr() != nullptr) {
-            size_t lastLength = lb->first.getLength();
-            lb->first.setLength(pos - lb->second);
-            last.setStr(lb->first.getStr());
-            last.setOffset(lb->first.getLength() + lb->first.getOffset());
-            last.setLength(lb->second + lastLength - pos);
-            nextOffset = lb->second + lb->first.getLength();
-            lb++;
-        }
-        for (auto const &str : src.vec) {
-            vec.insert(lb, make_pair(str.first, nextOffset));
-            nextOffset += str.first.getLength();
-            length += str.first.getLength();
-            lb++;
-        }
-        if (last.getStr() != nullptr) {
-            vec.insert2(lb, make_pair(last, nextOffset));
-//            length += last.getLength();
-        }
+        buffer.Insert(pos, src.buffer);
         return *this;
     }
-
-    CPatchStr &Delete(size_t from, size_t len) {
-        if (from + len > length)
+    CPatchStr & Delete    ( size_t            from,
+                            size_t            len ) {
+        if (from + len > buffer.length())
             throw InvalidIndexException();
         if (len == 0)
             return *this;
-        auto lb = vec.lower_bound(from);
-        size_t oldLen = lb->first.getLength();
-        lb->first.setLength(from - lb->second);
-        size_t decreaseOffset = oldLen - lb->first.getLength();
-        if (from + len == lb->second + oldLen) {
-            for (auto it = lb + 1; it != vec.end(); it++) {
-                it->second -= oldLen - lb->first.getLength();
-            }
-            length -= len;
-            return *this;
-        }
-        if (from + len <= lb->second + oldLen) {
-            CSubPatchStr next = CSubPatchStr(lb->first.getOffset() + len + lb->first.getLength(), oldLen - lb->first.getLength() - len, lb->first.getStr());
-            vec.insert(lb+1, make_pair(next, lb->second + lb->first.getLength()));
-            // decrease offset of all continuous substrings
-            for (auto it = lb + 2; it != vec.end(); it++) {
-                it->second -= len + (lb+1)->first.getLength();
-            }
-            length -= len;
-            return *this;
-        }
-        lb++;
-        if (lb == vec.end()) {
-            length -= len;
-            return *this;
-        }
-        while (from + len > lb->second + lb->first.getLength()) {
-            decreaseOffset += lb->first.getLength();
-            vec.erase(lb);
-        }
-        size_t oldOffset = lb->first.getOffset();
-        lb->first.setOffset(oldOffset + from + len - lb->second);
-        oldLen = lb->first.getLength();
-        lb->first.setLength(lb->second + lb->first.getLength() - from - len);
-        lb->second -= decreaseOffset;
-        decreaseOffset += oldLen - lb->first.getLength();
-        // decrease offset of all continuous substrings
-        for (auto it = lb + 1; it != vec.end(); it++) {
-            it->second -= decreaseOffset;
-        }
-        length -= len;
+        buffer.Delete(from, len);
         return *this;
     }
-
-    void Print() const {
-        for (auto &str : vec) {
-            char *out = new char[str.first.getLength()];
-            for (size_t j = str.first.getOffset(); j < str.first.getLength() + str.first.getOffset(); j++) {
-                out[j - str.first.getOffset()] = (*(str.first.getStr()))[j];
-            }
-            cout << out << ", O:" << str.first.getOffset() << ", L:" << str.first.getLength() << ", OS:" << str.second << endl;
-        }
+    char      * ToStr     ( void ) const {
+        return buffer.toChar();
     }
-
-    size_t Length() const {
-        return length;
-    }
-
-    char *ToStr(void) const {
-        char *out = new char[length+1];
-        out[length] = '\0';
-        if (length == 0)
-            return out;
-        size_t l = 0;
-        for (size_t i = 0; i < vec.size(); i++) {
-            for (size_t j = vec[i].first.getOffset(); j < vec[i].first.getLength() + vec[i].first.getOffset(); j++) {
-                out[l] = (*(vec[i].first.getStr()))[j];
-                l++;
-                if (l == length) {
-                    out[length] = '\0';
-//                    cout << "len: " << length << " ";
-                    return out;
-                }
-            }
-        }
-//        cout << "len: " << length << " ";
-        return out;
-    }
+private:
+    String buffer;
 };
 
 #ifndef __PROGTEST__
-
-bool stringMatch(char *str,
-                 const char *expected) {
-    bool res = strcmp(str, expected) == 0;
-    delete[] str;
+bool stringMatch ( char       * str,
+                   const char * expected )
+{
+    bool res = strcmp ( str, expected ) == 0;
+    delete [] str;
     return res;
 }
 
-int main(void) {
+int main ( void )
+{
     char tmpStr[100];
-    
-//    CPatchStr a("test");
-//    assert (stringMatch(a.ToStr(), "test"));
-////    cout << a.ToStr() << endl;
-//    strncpy(tmpStr, " da", sizeof(tmpStr));
-//    a.Append(tmpStr);
-////    cout << a.ToStr() << endl;
-//    assert (stringMatch(a.ToStr(), "test da"));
-//    strncpy(tmpStr, "ta", sizeof(tmpStr));
-//    a.Append(tmpStr);
-//    assert (stringMatch(a.ToStr(), "test data"));
-//    strncpy(tmpStr, "foo text", sizeof(tmpStr));
-//    CPatchStr b(tmpStr);
-//    assert (stringMatch(b.ToStr(), "foo text"));
-//    CPatchStr c(a);
-//    assert (stringMatch(c.ToStr(), "test data"));
-//    CPatchStr d(a.SubStr(3, 5));
-//    assert (stringMatch(d.ToStr(), "t dat"));
-//    d.Append(b);
-//    assert (stringMatch(d.ToStr(), "t datfoo text"));
-//    d.Append(b.SubStr(3, 4));
-////    cout << d.ToStr() << endl;
-//    assert (stringMatch(d.ToStr(), "t datfoo text tex"));
-//    c.Append(d);
-//    assert (stringMatch(c.ToStr(), "test datat datfoo text tex"));
-//    c.Append(c);
-////    cout << d.ToStr() << endl;
-////    cout << c.SubStr(6, 9).ToStr() << endl;
-//    assert (stringMatch(c.ToStr(), "test datat datfoo text textest datat datfoo text tex"));
-//    d.Insert(2, c.SubStr(6, 9));
-////    cout << d.ToStr() << endl;
-//    assert (stringMatch(d.ToStr(), "t atat datfdatfoo text tex"));
-//    b = "abcdefgh";
-//    assert (stringMatch(b.ToStr(), "abcdefgh"));
-//    assert (stringMatch(b.ToStr(), "abcdefgh"));
-//    assert (stringMatch(d.ToStr(), "t atat datfdatfoo text tex"));
-////    cout << d.ToStr() << endl;
-////    d.Print();
-////    cout << d.SubStr(4, 8).ToStr() << endl;
-//    assert (stringMatch(d.SubStr(4, 8).ToStr(), "at datfd"));
-////    cout << b.SubStr(2, 6).ToStr() << endl;
-//
-//    assert (stringMatch(b.SubStr(2, 6).ToStr(), "cdefgh"));
-//    try {
-//        b.SubStr(2, 7).ToStr();
-//        assert ("Exception not thrown" == NULL);
-//    }
-//    catch (InvalidIndexException &e) {
-//    }
-//    catch (...) {
-//        assert ("Invalid exception thrown" == NULL);
-//    }
-////    cout << a.ToStr() << endl;
-////    a.Print();
-//    a.Delete(3, 5);
-////    cout << a.ToStr() << endl;
-////    a.Print();
-//    assert (stringMatch(a.ToStr(), "tesa"));
-
     return 0;
 }
-
 #endif /* __PROGTEST__ */

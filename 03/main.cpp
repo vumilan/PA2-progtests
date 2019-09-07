@@ -241,14 +241,14 @@ CRangeList &CRangeList::correctAppend(const CRange &range) {
         return *this;
     // test mild intersection with range to the left
     if (lbLo != correctRanges.begin()) {
-        if ((lbLo-1)->getHi() >= range.getLo() || (lbLo-1)->getHi() >= range.getLo()-1) {
+        if ((lbLo-1)->getHi() + 1 >= range.getLo()) {
             newLo = Min((lbLo-1)->getLo(), range.getLo());
             leftOffset = -1;
         }
     }
     // test mild intersection with range to the right
     if (lbHi != correctRanges.end()) {
-        if (lbHi->getLo() <= range.getHi() || lbHi->getLo() <= range.getHi()+1) {
+        if (lbHi->getLo() - 1 <= range.getHi()) {
             newHi = Max(lbHi->getHi(), range.getHi());
             rightOffset = 1;
         }
@@ -366,73 +366,33 @@ string toString(const CRangeList &x) {
 
 int main(void) {
     CRangeList a, b;
-
     assert ( sizeof ( CRange ) <= 2 * sizeof ( long long ) );
-    a = CRange ( 5, 10 );
-    a += CRange ( 25, 100 );
-    assert ( toString ( a ) == "{<5..10>,<25..100>}" );
-    a += CRange ( -5, 0 );
-    a += CRange ( 8, 50 );
-    assert ( toString ( a ) == "{<-5..0>,<5..100>}" );
-    a += CRange ( 101, 105 ) + CRange ( 120, 150 ) + CRange ( 160, 180 ) + CRange ( 190, 210 );
-    cout << toString(a) << endl;
-    assert ( toString ( a ) == "{<-5..0>,<5..105>,<120..150>,<160..180>,<190..210>}" );
-    a += CRange ( 106, 119 ) + CRange ( 152, 158 );
-    assert ( toString ( a ) == "{<-5..0>,<5..150>,<152..158>,<160..180>,<190..210>}" );
-    a += CRange ( -3, 170 );
-    a += CRange ( -30, 1000 );
-    assert ( toString ( a ) == "{<-30..1000>}" );
-    b = CRange ( -500, -300 ) + CRange ( 2000, 3000 ) + CRange ( 700, 1001 );
-    a += b;
-    assert ( toString ( a ) == "{<-500..-300>,<-30..1001>,<2000..3000>}" );
-    a -= CRange ( -400, -400 );
-    assert ( toString ( a ) == "{<-500..-401>,<-399..-300>,<-30..1001>,<2000..3000>}" );
-    a -= CRange ( 10, 20 ) + CRange ( 900, 2500 ) + CRange ( 30, 40 ) + CRange ( 10000, 20000 );
-    assert ( toString ( a ) == "{<-500..-401>,<-399..-300>,<-30..9>,<21..29>,<41..899>,<2501..3000>}" );
-    try
-    {
-        a += CRange ( 15, 18 ) + CRange ( 10, 0 ) + CRange ( 35, 38 );
-        assert ( "Exception not thrown" == NULL );
-    }
-    catch ( const InvalidRangeException & e )
-    {
-    }
-    catch ( ... )
-    {
-        assert ( "Invalid exception thrown" == NULL );
-    }
-    assert ( toString ( a ) == "{<-500..-401>,<-399..-300>,<-30..9>,<21..29>,<41..899>,<2501..3000>}" );
-    b = a;
-    assert ( a == b );
-    assert ( !( a != b ) );
-    b += CRange ( 2600, 2700 );
-    assert ( toString ( b ) == "{<-500..-401>,<-399..-300>,<-30..9>,<21..29>,<41..899>,<2501..3000>}" );
-    assert ( a == b );
-    assert ( !( a != b ) );
-    b += CRange ( 15, 15 );
-    assert ( toString ( b ) == "{<-500..-401>,<-399..-300>,<-30..9>,15,<21..29>,<41..899>,<2501..3000>}" );
-    assert ( !( a == b ) );
-    assert ( a != b );
-    assert ( b . Includes ( 15 ) );
-    assert ( b . Includes ( 2900 ) );
-    assert ( b . Includes ( CRange ( 15, 15 ) ) );
-    assert ( b . Includes ( CRange ( -350, -350 ) ) );
-    assert ( b . Includes ( CRange ( 100, 200 ) ) );
-    assert ( !b . Includes ( CRange ( 800, 900 ) ) );
-    assert ( !b . Includes ( CRange ( -1000, -450 ) ) );
-    assert ( !b . Includes ( CRange ( 0, 500 ) ) );
-    a += CRange ( -10000, 10000 ) + CRange ( 10000000, 1000000000 );
-    assert ( toString ( a ) == "{<-10000..10000>,<10000000..1000000000>}" );
+    a += CRange(5, 10);
+    a += CRange(1, 30);
+    a -= CRange(5, 10);
+    a -= CRange(5, 10);
+    assert(!a.Includes(5));
+    assert(a.Includes(11));
+    a += CRange(5, 10);
+    a += CRange(-30, 0);
+    a += CRange(-60, -45);
+    a += CRange(100, 250);
+    a += CRange(300, 550);
+    a += CRange(-42, -42);
+    a += CRange(LLONG_MAX-3, LLONG_MAX);
     b += a;
-    assert ( toString ( b ) == "{<-10000..10000>,<10000000..1000000000>}" );
-    b -= a;
-    assert ( toString ( b ) == "{}" );
-    b += CRange ( 0, 100 ) + CRange ( 200, 300 ) - CRange ( 150, 250 ) + CRange ( 160, 180 ) - CRange ( 170, 170 );
-    assert ( toString ( b ) == "{<0..100>,<160..169>,<171..180>,<251..300>}" );
-    b -= CRange ( 10, 90 ) - CRange ( 20, 30 ) - CRange ( 40, 50 ) - CRange ( 60, 90 ) + CRange ( 70, 80 );
-    cout << toString(b) << endl;
-    assert ( toString ( b ) == "{<0..9>,<20..30>,<40..50>,<60..69>,<81..100>,<160..169>,<171..180>,<251..300>}" );
-    b += CRange(302, 302);
+    cout << b.Includes(LLONG_MAX-4) << endl;
+    cout << b.Includes(-42) << endl;
+    cout << b.Includes(43) << endl;
+    cout << b.Includes(-60) << endl;
+    cout << b.Includes(-45) << endl;
+    cout << b.Includes(299) << endl;
+    cout << b.Includes(-300) << endl;
+    cout << b.Includes(350) << endl;
+
+
+    cout << toString(a) << endl;
+
     cout << toString(b) << endl;
 #ifdef EXTENDED_SYNTAX
     CRangeList x { { 5, 20 }, { 150, 200 }, { -9, 12 }, { 48, 93 } };
@@ -442,7 +402,6 @@ int main(void) {
       for ( const auto & v : x + CRange ( -100, -100 ) )
         oss << v << endl;
       oss << setw ( 10 ) << 1024;
-      cout << oss . str () << endl;
       assert ( oss . str () == "-100\n<-9..20>\n<48..93>\n<150..200>\n400=======" );
     return 0;
 #endif /* EXTENDED_SYNTAX */

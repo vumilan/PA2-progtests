@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/vumilan/CLionProjects/PA2/PA2-progtests/02/main.cpp
+cstring
+-
+cstdlib
+-
+cstdio
+-
+cctype
+-
+cmath
+-
+cassert
+-
+iostream
+-
+iomanip
+-
+string
+-
+vector
+-
+list
+-
+algorithm
+-
+functional
+-
+memory
+-
+
